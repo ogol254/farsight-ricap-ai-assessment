@@ -2,6 +2,8 @@
 
 A review-friendly demonstrator for the Farsight Africa RICAP case study. It exposes typed, auditable API contracts and a lightweight browser UI for the four proposed use cases.
 
+Live demo: https://farsight-ricap-ai-assessment.vercel.app/
+
 ## Run locally
 
 ```bash
