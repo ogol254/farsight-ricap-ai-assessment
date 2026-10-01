@@ -7,7 +7,7 @@ from typing import Annotated, Literal
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from fastapi.responses import FileResponse
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 logger = logging.getLogger("ricap")
 logging.basicConfig(level=logging.INFO)
@@ -40,6 +40,12 @@ class RiskRecord(BaseModel):
     business_size: Literal["MICRO", "SMALL", "MEDIUM", "LARGE"] = "SMALL"
     region: str = Field(default="UNKNOWN", min_length=1, max_length=64)
 
+    @model_validator(mode="after")
+    def valid_filing_counts(self):
+        if self.late_filings_24m > self.filings_24m:
+            raise ValueError("Late filings cannot exceed total filings")
+        return self
+
 
 class RiskRequest(BaseModel):
     records: list[RiskRecord] = Field(min_length=1, max_length=MAX_BATCH)
@@ -65,7 +71,8 @@ def risk_score(r: RiskRecord) -> float:
     score = 0.08
     score += min(r.late_filings_24m / max(r.filings_24m, 1), 1.0) * 0.35
     score += (1 - (r.payment_ratio_12m if r.payment_ratio_12m is not None else 0.45)) * 0.35
-    score += min((r.days_since_last_payment or 365) / 365, 1.0) * 0.15
+    days = 365 if r.days_since_last_payment is None else r.days_since_last_payment
+    score += min(days / 365, 1.0) * 0.15
     score += (0.08 if r.business_size == "MICRO" else 0.0)
     score += max(0.0, -(r.turnover_growth_yoy or 0)) * 0.04
     return round(max(0.0, min(1.0, score)), 4)
@@ -90,9 +97,13 @@ KNOWLEDGE = [
 def answer_question(question: str, user_role: str) -> dict:
     lang = language(question)
     q = question.lower()
-    candidates = [c for c in KNOWLEDGE if c["lang"] == lang and any(w in c["text"].lower() or w in c["section"].lower() for w in re.findall(r"[a-zA-Z]{3,}", q))]
-    if not candidates:
-        candidates = [c for c in KNOWLEDGE if c["lang"] == lang]
+    # Deliberately narrow topic lookup: unrelated questions must not receive a random FAQ.
+    terms = {"FAQ-001": {"file", "filing", "deadline", "deadlines", "late"},
+             "FAQ-002": {"pay", "payment", "payments", "channels", "bank", "card", "evc", "zaad", "edahab"},
+             "FAQ-003": {"gudbiyaa", "gudbinta", "foomka", "taariikhda"}}
+    words = set(re.findall(r"[a-zA-Z]+", q))
+    candidates = sorted([c for c in KNOWLEDGE if c["lang"] == lang and words.intersection(terms[c["doc_id"]])],
+                        key=lambda c: -len(words.intersection(terms[c["doc_id"]])))
     if not candidates:
         msg = "Ma helin xog ku filan. Fadlan la xiriir sarkaalka dakhliga." if lang == "so" else "I could not find a grounded answer. Please contact a Revenue Officer."
         return {"answer": msg, "citations": [], "language": lang, "grounded": False}
@@ -112,7 +123,7 @@ def health() -> dict:
 
 @app.get("/ready")
 def ready() -> dict:
-    return {"status": "ready", "model_loaded": True, "model_version": MODEL_VERSION}
+    return {"status": "ready", "mode": "deterministic_demo", "model_loaded": False, "model_version": MODEL_VERSION}
 
 
 @app.post("/v1/risk-scores")
@@ -138,7 +149,7 @@ def complaints(payload: ComplaintRequest) -> dict:
     labels = {"payment": ["payment", "pay", "lacag", "bixin"], "filing": ["filing", "return", "foom"], "water": ["water", "meter", "biyo"], "technical": ["portal", "login", "app"]}
     category = max(labels, key=lambda k: sum(term in text for term in labels[k]))
     if not any(term in text for term in labels[category]): category = "general"
-    return {"category": category, "confidence": 0.78 if category != "general" else 0.42, "route": "revenue-support"}
+    return {"category": category, "confidence": None, "method": "keyword_rules", "requires_review": True, "route": "revenue-support"}
 
 
 @app.post("/v1/meter-review")
@@ -148,4 +159,3 @@ def meter_review(payload: MeterRequest) -> dict:
     if payload.reading_value is None: reasons.append("unreadable_display")
     if payload.previous_reading is not None and payload.reading_value is not None and payload.reading_value < payload.previous_reading: reasons.append("decreasing_reading")
     return {"reading_value": payload.reading_value, "confidence": payload.ocr_confidence, "requires_review": bool(reasons), "flags": reasons}
-

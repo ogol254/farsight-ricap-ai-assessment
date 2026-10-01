@@ -16,7 +16,17 @@ spec:
             limits: {cpu: "1", memory: "1Gi"}
           readinessProbe: {httpGet: {path: /ready, port: 8000}, initialDelaySeconds: 5}
           livenessProbe: {httpGet: {path: /health, port: 8000}, initialDelaySeconds: 10}
+          startupProbe: {httpGet: {path: /health, port: 8000}, failureThreshold: 30, periodSeconds: 10}
+          securityContext:
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+          env: [{name: MODEL_DIR, value: /models/uc1}]
           envFrom: [{secretRef: {name: ricap-ai-secrets}}]
+          volumeMounts: [{name: model, mountPath: /models/uc1, readOnly: true}]
+      # Provision the approved C1 artifact on this claim before deploying.
+      volumes: [{name: model, persistentVolumeClaim: {claimName: ricap-uc1-model}}]
 ---
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
@@ -26,4 +36,3 @@ spec:
   minReplicas: 2
   maxReplicas: 8
   metrics: [{type: Resource, resource: {name: cpu, target: {type: Utilization, averageUtilization: 65}}}]
-
