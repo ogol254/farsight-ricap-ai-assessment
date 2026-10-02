@@ -62,7 +62,7 @@ class Assistant:
         method = "retrieved_source_extract"
         if self.small_llm:
             generated = self.small_llm.extract(question, doc["text"])
-            if generated and len(generated) > 25 and generated in doc["text"]:
+            if generated and len(generated) > 25 and generated[-1] in '.?!' and generated in doc["text"]:
                 answer, method = generated, "local_llm_verified_extract"
             else:
                 method = "source_extract_generation_guardrail"

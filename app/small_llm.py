@@ -6,6 +6,7 @@ accepts exact source extracts; otherwise it returns retrieved evidence unchanged
 import os
 from pathlib import Path
 import threading
+import time
 
 
 class SmallLLM:
@@ -20,9 +21,13 @@ class SmallLLM:
         self.model = Llama(model_path=path, n_ctx=512, n_batch=32, n_threads=1, n_gpu_layers=0, verbose=False)
 
     def extract(self, question, evidence):
+        from llama_cpp import StoppingCriteriaList
         prompt = f"<|im_start|>system\nCopy the sentence from the evidence that answers the question. Do not add any other information.<|im_end|>\n<|im_start|>user\nEvidence: {evidence}\nQuestion: {question}<|im_end|>\n<|im_start|>assistant\n"
         with self.lock:
             if len(self.model.tokenize(prompt.encode("utf-8"))) > 400:
                 return ""  # Caller returns the source extract; no context overflow.
-            result = self.model(prompt, max_tokens=100, temperature=0, stop=["<|im_end|>"])
+            deadline = time.monotonic() + 8
+            result = self.model(prompt, max_tokens=32, temperature=0,
+                                stopping_criteria=StoppingCriteriaList([lambda *_: time.monotonic() >= deadline]),
+                                stop=["<|im_end|>"])
         return result["choices"][0]["text"].strip().strip('"')

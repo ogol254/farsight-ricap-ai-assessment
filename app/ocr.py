@@ -31,6 +31,8 @@ class MeterOCR:
             image = Image.open(BytesIO(image_bytes))
             if image.format not in {"JPEG", "PNG", "WEBP"}:
                 raise ValueError("Please upload a JPEG, PNG or WebP image.")
+            if image.width * image.height > 3_000_000:
+                raise ValueError("Image exceeds the demo's 3-megapixel processing limit. Use the browser upload, which resizes photos automatically.")
             image = ImageOps.exif_transpose(image).convert("RGB")
             if min(image.size) < 60:
                 raise ValueError("Image is too small; photograph the meter display more closely.")
