@@ -5,6 +5,7 @@ WORKDIR /home/appuser/app
 COPY requirements.txt requirements-connected.txt requirements-neural.txt ./
 RUN pip install --no-cache-dir torch==2.6.0 --index-url https://download.pytorch.org/whl/cpu && pip install --no-cache-dir -r requirements-neural.txt
 COPY --chown=appuser:appuser . .
+RUN mkdir -p artifacts && chown -R appuser:appuser /home/appuser/app
 USER appuser
 ENV HF_HOME=/home/appuser/.cache/huggingface ENABLE_NEURAL=1 PYTHONUNBUFFERED=1
 RUN python -c "from app.models import Models; Models(); from app.ocr import MeterOCR; MeterOCR()"
