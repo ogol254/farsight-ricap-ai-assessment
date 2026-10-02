@@ -9,3 +9,5 @@ bridge/
 .doc-review/
 models/
 .env.*
+.gdrive*
+.codex-bridge/
