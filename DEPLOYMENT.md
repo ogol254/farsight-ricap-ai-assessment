@@ -47,10 +47,12 @@ readable by anonymous Data API clients. The API applies session ownership checks
   than the larger proposed multilingual neural encoder. A tiny model is not
   trusted to invent or translate legal statements: unsupported generation is
   replaced by the actual retrieved source text. Unrelated queries abstain.
-- **UC3:** camera/file upload → pretrained PP-OCR image inference → confidence,
-  ambiguity and previous-reading checks → private photo + record → separate human
-  correction. It is **server-side**, not offline Android inference. It does not
-  claim visual tamper detection. Multiple numeric regions require cropping/review.
+- **UC3:** camera/file upload → PP-OCR plus meter-specific red-counter extraction
+  → meter ID and reading → confidence/previous-reading checks → private photo +
+  focused record → separate human correction. It is **server-side**, not offline
+  Android inference. It does not claim visual tamper detection. The checked-in
+  `tests/fixtures/watermeter.png` is the reference example for the calibrated
+  meter layout.
 - **UC4:** trained eight-class character TF-IDF/logistic model → confidence and
   alternatives → routing record. No external department is messaged automatically.
 

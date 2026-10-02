@@ -216,7 +216,13 @@ def create_app(database_url=None, model_dir="artifacts/connected-v1", photo_root
             result["photo_key"] = await run_in_threadpool(app.state.storage.put, cleaned)
         except Exception:
             raise HTTPException(503, "Photo storage unavailable. No successful save was recorded.")
-        return persist(owner, "meter", result)
+        # Keep the saved UC3 record focused on the two values an operator needs.
+        # The original photo remains private and available for review.
+        saved = {key: result.get(key) for key in (
+            "meter_id", "reading_value", "reading_text", "confidence",
+            "requires_review", "flags", "previous_reading", "photo_key"
+        )}
+        return persist(owner, "meter", saved)
 
     @app.get("/v1/meter-readings/{record_id}/photo")
     def photo(record_id: str, owner: Annotated[str, Depends(user)]):

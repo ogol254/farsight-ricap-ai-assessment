@@ -84,6 +84,16 @@ class ConnectedTests(unittest.TestCase):
         self.assertEqual(review.status_code, 200)
         self.assertTrue(review.json()["original_ocr_preserved"])
 
+    def test_04b_meter_fixture_reads_red_counter_and_id(self):
+        fixture = Path(__file__).parent / "fixtures" / "watermeter.png"
+        response = self.client.post("/v1/meter-readings", files={"image": ("watermeter.png", fixture.read_bytes(), "image/png")}, headers=self.headers)
+        self.assertEqual(response.status_code, 200, response.text)
+        result = response.json()
+        self.assertEqual(result["meter_id"], "31120595")
+        self.assertEqual(result["reading_value"], 220)
+        self.assertEqual(result["reading_text"], "220")
+        self.assertNotIn("candidates", result)
+
     def test_05_reject_non_image_and_abstain_blank(self):
         bad = self.client.post("/v1/meter-readings", files={"image": ("bad.jpg", b"not an image", "image/jpeg")}, headers=self.headers)
         self.assertEqual(bad.status_code, 422)
