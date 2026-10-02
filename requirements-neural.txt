@@ -1,0 +1,4 @@
+-r requirements-connected.txt
+transformers==4.51.3
+sentence-transformers==4.1.0
+torch==2.6.0

@@ -1,0 +1,22 @@
+FROM python:3.12-slim AS builder
+RUN apt-get update && apt-get install -y --no-install-recommends build-essential cmake curl && rm -rf /var/lib/apt/lists/*
+WORKDIR /build
+COPY requirements.txt requirements-connected.txt requirements-small-llm.txt ./
+ENV CMAKE_ARGS="-DGGML_NATIVE=OFF -DGGML_OPENMP=OFF" CMAKE_BUILD_PARALLEL_LEVEL=2
+RUN pip wheel --no-cache-dir --wheel-dir /wheels -r requirements-small-llm.txt
+RUN mkdir /models && curl --fail --location --retry 3 https://huggingface.co/unsloth/SmolLM2-135M-Instruct-GGUF/resolve/9e6855bc4be717fca1ef21360a1db4b29d5c559a/SmolLM2-135M-Instruct-Q4_K_M.gguf -o /models/SmolLM2-135M-Instruct-Q4_K_M.gguf
+
+FROM python:3.12-slim
+RUN apt-get update && apt-get install -y --no-install-recommends libgl1 libglib2.0-0 && rm -rf /var/lib/apt/lists/*
+COPY --from=builder /wheels /wheels
+COPY requirements.txt requirements-connected.txt requirements-small-llm.txt /tmp/
+RUN pip install --no-cache-dir --no-index --find-links=/wheels -r /tmp/requirements-small-llm.txt && rm -rf /wheels
+RUN useradd -m -u 1000 appuser
+WORKDIR /home/appuser/app
+COPY --chown=appuser:appuser . .
+COPY --from=builder --chown=appuser:appuser /models ./models
+USER appuser
+ENV PYTHONUNBUFFERED=1 OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 GGUF_PATH=/home/appuser/app/models/SmolLM2-135M-Instruct-Q4_K_M.gguf
+RUN python -c "from app.models import Models; Models(); from app.ocr import MeterOCR; MeterOCR()"
+EXPOSE 10000
+CMD ["uvicorn", "app.connected:app", "--host", "0.0.0.0", "--port", "10000", "--workers", "1", "--no-access-log"]

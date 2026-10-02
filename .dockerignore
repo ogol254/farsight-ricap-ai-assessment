@@ -1,0 +1,10 @@
+.git
+.venv
+.env*
+artifacts
+models
+.doc-review
+bridge
+output
+__pycache__
+*.docx

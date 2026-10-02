@@ -7,3 +7,5 @@ artifacts/
 bridge/
 .pytest_cache/
 .doc-review/
+models/
+.env.*
