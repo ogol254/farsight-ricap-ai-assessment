@@ -1,4 +1,8 @@
 {
-  "builds": [{"src": "api/index.py", "use": "@vercel/python"}],
-  "routes": [{"src": "/(.*)", "dest": "api/index.py"}]
+  "builds": [{"src": "app/static/**", "use": "@vercel/static"}],
+  "routes": [
+    {"src": "/", "dest": "/app/static/connected.html"},
+    {"src": "/static/(.*)", "dest": "/app/static/$1"},
+    {"src": "/(.*)", "dest": "https://ricap-connected-demo.onrender.com/$1"}
+  ]
 }

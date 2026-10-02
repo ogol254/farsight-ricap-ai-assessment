@@ -53,4 +53,4 @@ Each L4 has 24 GB; the cards do not automatically form one 48 GB memory pool. I 
 
 ## Public demo boundary
 
-The [live demonstration](https://farsight-ricap-ai-assessment.vercel.app/) connects a browser interface to a FastAPI application on Vercel, using deterministic rules and a small in-memory FAQ. It does **not** connect the production database, LLM, vector database, image OCR, offline mobile app or model registry shown in the proposed design.
+The [live demonstration](https://farsight-ricap-ai-assessment.vercel.app/) uses Vercel for the browser interface and API proxy, Render for FastAPI and CPU inference, and Supabase for PostgreSQL and private photos. It implements trained risk scoring, bilingual document retrieval with a small local language model, image OCR with human review, and trained complaint triage. All records and guidance are fictional. The free demo uses TF-IDF retrieval rather than a vector database and server-side OCR rather than offline Android inference. Ministry integrations, WhatsApp, the production model registry and the on-premise/cloud-DR estate above remain the proposed design. See [the deployment boundary](../DEPLOYMENT.md).

@@ -1,7 +1,8 @@
-# Connected demo deployment (work in progress)
+# Connected demo deployment
 
-The connected implementation is `app.connected:app`. The existing `app.main:app`
-and Vercel entrypoint remain unchanged until the replacement passes deployment tests.
+The connected implementation is `app.connected:app`. Vercel serves static assets
+and proxies APIs to `https://ricap-connected-demo.onrender.com`. The historical
+`app.main:app` and Python Vercel entrypoint are not used by this deployment.
 
 ## Local run
 
