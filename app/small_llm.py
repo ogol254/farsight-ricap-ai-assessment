@@ -18,7 +18,10 @@ class SmallLLM:
         if not Path(path).is_file():
             raise RuntimeError("Local GGUF model file is missing")
         self.lock = threading.Lock()
-        self.model = Llama(model_path=path, n_ctx=512, n_batch=32, n_threads=1, n_gpu_layers=0, verbose=False)
+        # Explicitly constrain BOTH thread pools: the batch default uses the
+        # host CPU count, not the container's tiny CPU quota, causing starvation.
+        self.model = Llama(model_path=path, n_ctx=512, n_batch=64, n_threads=1,
+                           n_threads_batch=1, n_gpu_layers=0, verbose=False)
 
     def extract(self, question, evidence):
         from llama_cpp import StoppingCriteriaList
